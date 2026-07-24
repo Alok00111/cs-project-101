@@ -295,17 +295,27 @@
             <p class="form-section-label">Demographics</p>
             <div class="form-grid-2">
               <div class="form-group">
-                <label>Patient Name</label>
+                <label>Patient ID *</label>
+                <input type="text" id="patient-id" placeholder="e.g. 102938" required />
+              </div>
+              <div class="form-group">
+                <label>Contact Number *</label>
+                <input type="tel" id="contact-num" placeholder="(555) 555-5555" required />
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Patient Name *</label>
                 <input type="text" id="patient-name" placeholder="John Doe" required />
               </div>
               <div class="form-group">
-                <label>Age (years)</label>
+                <label>Age (years) *</label>
                 <input type="number" id="patient-age" min="18" max="120" placeholder="55" required />
               </div>
             </div>
             <div class="form-grid-2">
               <div class="form-group">
-                <label>Gender</label>
+                <label>Gender *</label>
                 <select id="patient-gender" required>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -313,8 +323,18 @@
                 </select>
               </div>
               <div class="form-group">
-                <label>BMI</label>
-                <input type="number" id="patient-bmi" step="0.1" min="10" max="70" placeholder="28.5" required />
+                <label>Height (cm) *</label>
+                <input type="number" id="patient-height" step="1" min="100" max="250" placeholder="175" required />
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Weight (kg) *</label>
+                <input type="number" id="patient-weight" step="0.1" min="30" max="300" placeholder="85.5" required />
+              </div>
+              <div class="form-group">
+                <label>BMI (Auto-calculated)</label>
+                <input type="number" id="patient-bmi" step="0.1" placeholder="27.9" readonly />
               </div>
             </div>
 
@@ -596,15 +616,28 @@ function escHtml(s) {
   update();
 })();
 
-// ── BMI → Obesity sync ──────────────────────────────────────────
+// ── BMI Calculation ───────────────────────────────────────────
 (function initBmiListener() {
+  const htEl = document.getElementById("patient-height");
+  const wtEl = document.getElementById("patient-weight");
   const bmiEl = document.getElementById("patient-bmi");
   const obsToggle = document.getElementById("toggle-obesity");
+  
   function update() {
-    const bmi = parseFloat(bmiEl.value) || 0;
-    obsToggle.checked = bmi >= 30;
+    const ht = parseFloat(htEl.value) || 0;
+    const wt = parseFloat(wtEl.value) || 0;
+    if (ht > 0 && wt > 0) {
+      const htMeters = ht / 100;
+      const bmi = wt / (htMeters * htMeters);
+      bmiEl.value = bmi.toFixed(1);
+      obsToggle.checked = bmi >= 30;
+    } else {
+      bmiEl.value = "";
+      obsToggle.checked = false;
+    }
   }
-  bmiEl.addEventListener("input", update);
+  htEl.addEventListener("input", update);
+  wtEl.addEventListener("input", update);
   update();
 })();
 
@@ -637,6 +670,12 @@ document.getElementById("patient-form").addEventListener("submit", async (e) => 
   const isInsulin  = document.getElementById("toggle-insulin").checked;
 
   const payload = {
+    patient_id:                  document.getElementById("patient-id").value,
+    patient_name:                document.getElementById("patient-name").value,
+    patient_age:                 parseFloat(document.getElementById("patient-age").value) || 0,
+    patient_gender:              gender,
+    patient_bmi:                 bmi,
+    patient_contact:             document.getElementById("contact-num").value,
     egfr:                        parseFloat(document.getElementById("patient-egfr").value) || 90,
     hba1c:                       parseFloat(document.getElementById("patient-hba1c").value) || 7.0,
     pregnant:                    isPregnant,

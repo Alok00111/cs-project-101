@@ -82,6 +82,12 @@ def recommend_drugs(patient: dict) -> dict:
     moderate_renal      = 30 <= egfr < 60
     hypo_tolerance      = patient.get("hypoglycemia_risk_tolerance", "low").lower()
     current_meds        = [m.strip().lower() for m in patient.get("current_medications", [])]
+    
+    # New clinical parameters
+    heart_failure       = bool(patient.get("heart_failure", False))
+    liver_disease       = bool(patient.get("liver_disease", False))
+    willing_to_inject   = bool(patient.get("willing_to_inject", True))
+    cost_preference     = patient.get("cost_preference", "medium").lower()
 
     recommended     = []
     contraindicated = []
@@ -122,6 +128,11 @@ def recommend_drugs(patient: dict) -> dict:
         start_dose      = str(drug.get("Typical_Starting_Dose", ""))
         max_dose        = str(drug.get("Maximum_Dose", ""))
         route           = str(drug.get("Route", "Oral"))
+        
+        hf_flag         = str(drug.get("Heart_Failure", "Neutral")).strip().lower()
+        hepatic_flag    = str(drug.get("Hepatic_Impairment", "Safe")).strip().lower()
+        cost_tier       = str(drug.get("Cost_Tier", "Medium")).strip().lower()
+        inject_req      = str(drug.get("Injection_Required", "No")).strip().lower() == "yes"
 
         warnings   = []  # drug-specific warnings for this patient
         reasons    = []  # positive reasons to recommend
@@ -129,6 +140,11 @@ def recommend_drugs(patient: dict) -> dict:
         skip_reason = ""
 
         # --- CONTRAINDICATION CHECKS --------------------------------------
+
+        # Injection preference
+        if not willing_to_inject and inject_req:
+            skip = True
+            skip_reason = "Patient refuses injectables; this medication requires injection."
 
         # Pregnancy contraindications
         if pregnant:
@@ -151,6 +167,24 @@ def recommend_drugs(patient: dict) -> dict:
         if hypo_tolerance == "low" and hypo_risk == "high":
             skip = True
             skip_reason = "High hypoglycemia risk drug not suitable for patient with low hypoglycemia tolerance."
+
+        # Heart Failure
+        if heart_failure:
+            if hf_flag == "contraindicated":
+                skip = True
+                skip_reason = "Strictly contraindicated in heart failure."
+            elif hf_flag == "caution":
+                warnings.append("Caution advised in heart failure.")
+            elif hf_flag == "beneficial":
+                reasons.append("Highly recommended for patients with heart failure.")
+
+        # Liver Disease
+        if liver_disease:
+            if hepatic_flag == "avoid":
+                skip = True
+                skip_reason = "Avoid or contraindicated in hepatic impairment."
+            elif hepatic_flag == "caution":
+                warnings.append("Caution or dose adjustment required in hepatic impairment.")
 
         # Already on the drug
         if drug_name.lower() in current_meds:
@@ -190,6 +224,12 @@ def recommend_drugs(patient: dict) -> dict:
             elif "gain" in weight_effect.lower():
                 warnings.append(f"May cause weight gain ({weight_effect}) — consider in context of obesity.")
 
+        # Cost Preference
+        if cost_preference == "low" and cost_tier == "high":
+            warnings.append("High-cost medication; conflicts with patient's low-cost preference.")
+        elif cost_preference == "low" and cost_tier == "low":
+            reasons.append("Low-cost / Generic available.")
+
         # HbA1c level context
         if hba1c > 8.5:
             reasons.append(f"Patient HbA1c is {hba1c}% — potent glucose-lowering agents are preferable.")
@@ -217,19 +257,43 @@ def recommend_drugs(patient: dict) -> dict:
             "hypoglycemia_risk":drug.get("Hypoglycemia_Risk", "Low"),
             "pregnancy_note":   pregnancy_note,
             "renal_adjustment": renal_adj,
+            "cost_tier":        drug.get("Cost_Tier", "Medium"),
             "reasons":          reasons,
             "warnings":         warnings,
             "is_first_line":    first_line,
             "score":            len(reasons),   # higher = more reasons to prefer
+            "effectiveness":    min(98, 70 + (len(reasons) * 6) + (10 if first_line else 0)) # Pseudo-confidence %
         })
 
     # Sort: first-line first, then by number of positive reasons
     recommended.sort(key=lambda x: (not x["is_first_line"], -x["score"]))
+    
+    # Generate Patient Summary String
+    patient_id = patient.get("patient_id", "N/A")
+    name = patient.get("patient_name", "Unknown Patient")
+    age = patient.get("patient_age", 0)
+    gender = patient.get("patient_gender", "Unknown").capitalize()
+    bmi = patient.get("patient_bmi", 0)
+    bmi_class = "Obese" if bmi >= 30 else ("Overweight" if bmi >= 25 else "Normal")
+    
+    summary_text = f"{name} (ID: {patient_id}), {age}yo {gender}, BMI {bmi} ({bmi_class}). "
+    summary_text += f"Key Labs: HbA1c {hba1c}%, eGFR {egfr} mL/min. "
+    
+    constraints = []
+    if cardiac_history: constraints.append("Cardiac History")
+    if heart_failure: constraints.append("Heart Failure")
+    if liver_disease: constraints.append("Hepatic Impairment")
+    if pregnant: constraints.append("Pregnant")
+    if not willing_to_inject: constraints.append("Refuses Injectables")
+    
+    if constraints:
+        summary_text += "Clinical constraints: " + ", ".join(constraints) + "."
 
     return {
         "recommended":      recommended,
         "contraindicated":  contraindicated,
         "patient_warnings": patient_warnings,
+        "patient_summary_text": summary_text,
         "patient_summary": {
             "eGFR":                 egfr,
             "HbA1c":                hba1c,
