@@ -290,23 +290,23 @@
       <div class="card">
         <div class="card-header">Patient Clinical Details</div>
         <div class="card-body">
-          <form id="patient-form" novalidate>
+          <form id="patient-form">
 
             <p class="form-section-label">Demographics</p>
             <div class="form-grid-2">
               <div class="form-group">
                 <label>Patient Name</label>
-                <input type="text" id="patient-name" placeholder="John Doe" />
+                <input type="text" id="patient-name" placeholder="John Doe" required />
               </div>
               <div class="form-group">
                 <label>Age (years)</label>
-                <input type="number" id="patient-age" min="18" max="120" placeholder="55" />
+                <input type="number" id="patient-age" min="18" max="120" placeholder="55" required />
               </div>
             </div>
             <div class="form-grid-2">
               <div class="form-group">
                 <label>Gender</label>
-                <select id="patient-gender">
+                <select id="patient-gender" required>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
                   <option value="other">Other</option>
@@ -314,7 +314,7 @@
               </div>
               <div class="form-group">
                 <label>BMI</label>
-                <input type="number" id="patient-bmi" step="0.1" min="10" max="70" placeholder="28.5" />
+                <input type="number" id="patient-bmi" step="0.1" min="10" max="70" placeholder="28.5" required />
               </div>
             </div>
 
@@ -322,31 +322,31 @@
             <div class="form-grid-2">
               <div class="form-group">
                 <label>HbA1c (%)</label>
-                <input type="number" id="patient-hba1c" step="0.1" min="4" max="20" placeholder="8.5" />
+                <input type="number" id="patient-hba1c" step="0.1" min="4" max="20" placeholder="8.5" required />
               </div>
               <div class="form-group">
                 <label>eGFR (mL/min/1.73m²)</label>
-                <input type="number" id="patient-egfr" step="1" min="0" max="150" placeholder="75" />
+                <input type="number" id="patient-egfr" step="1" min="0" max="150" placeholder="75" required />
               </div>
             </div>
             <div class="form-grid-2">
               <div class="form-group">
                 <label>Number of Medications</label>
-                <input type="number" id="num-medications" step="1" min="0" max="100" placeholder="10" />
+                <input type="number" id="num-medications" step="1" min="0" max="100" placeholder="10" required />
               </div>
               <div class="form-group">
                 <label>Number of Diagnoses</label>
-                <input type="number" id="num-diagnoses" step="1" min="0" max="30" placeholder="7" />
+                <input type="number" id="num-diagnoses" step="1" min="0" max="30" placeholder="7" required />
               </div>
             </div>
             <div class="form-grid-2">
               <div class="form-group">
                 <label>Days in Hospital</label>
-                <input type="number" id="time-in-hospital" step="1" min="1" max="30" placeholder="4" />
+                <input type="number" id="time-in-hospital" step="1" min="1" max="30" placeholder="4" required />
               </div>
               <div class="form-group">
                 <label>Prior Inpatient Visits</label>
-                <input type="number" id="number-inpatient" step="1" min="0" max="20" placeholder="1" />
+                <input type="number" id="number-inpatient" step="1" min="0" max="20" placeholder="1" required />
               </div>
             </div>
 
@@ -354,6 +354,14 @@
             <div class="toggle-row">
               <label for="toggle-cardiac">Cardiovascular Disease History</label>
               <label class="switch"><input type="checkbox" id="toggle-cardiac" /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <label for="toggle-hf">Heart Failure</label>
+              <label class="switch"><input type="checkbox" id="toggle-hf" /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <label for="toggle-liver">Hepatic (Liver) Impairment</label>
+              <label class="switch"><input type="checkbox" id="toggle-liver" /><span class="slider"></span></label>
             </div>
             <div class="toggle-row" id="pregnancy-row" style="display:none;">
               <label for="toggle-pregnant">Currently Pregnant</label>
@@ -369,6 +377,23 @@
             </div>
 
             <p class="form-section-label">Clinical Preferences</p>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Cost Preference</label>
+                <select id="cost-preference">
+                  <option value="low">Low Cost (Generics preferred)</option>
+                  <option value="medium" selected>Medium (Standard coverage)</option>
+                  <option value="high">High / Not an issue</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Willingness to Inject</label>
+                <select id="willing-inject">
+                  <option value="true" selected>Yes, willing to inject</option>
+                  <option value="false">No, oral medications only</option>
+                </select>
+              </div>
+            </div>
             <div class="form-group">
               <label>Hypoglycemia Risk Tolerance</label>
               <select id="hypo-tolerance">
@@ -616,6 +641,10 @@ document.getElementById("patient-form").addEventListener("submit", async (e) => 
     hba1c:                       parseFloat(document.getElementById("patient-hba1c").value) || 7.0,
     pregnant:                    isPregnant,
     cardiac_history:             document.getElementById("toggle-cardiac").checked,
+    heart_failure:               document.getElementById("toggle-hf").checked,
+    liver_disease:               document.getElementById("toggle-liver").checked,
+    willing_to_inject:           document.getElementById("willing-inject").value === "true",
+    cost_preference:             document.getElementById("cost-preference").value,
     obesity:                     obsToggle.checked,
     hypoglycemia_risk_tolerance: document.getElementById("hypo-tolerance").value,
     current_medications:         document.getElementById("current-meds").value,
@@ -630,7 +659,7 @@ document.getElementById("patient-form").addEventListener("submit", async (e) => 
     number_inpatient:  parseFloat(document.getElementById("number-inpatient").value) || 0,
     uses_insulin:      isInsulin ? 1 : 0,
     Obesity:           obsToggle.checked ? 1 : 0,
-    Heart_Failure:     document.getElementById("toggle-cardiac").checked ? 1 : 0,
+    Heart_Failure:     document.getElementById("toggle-hf").checked ? 1 : 0,
     age:               parseFloat(document.getElementById("patient-age").value) || 50,
     num_lab_procedures: 40,
   };
