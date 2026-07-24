@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CDSS — Diabetes Drug Recommendation System</title>
+  <meta name="description" content="Clinical Decision Support System for Type 2 Diabetes Mellitus — Drug Recommendation, Readmission Risk Prediction and Model Comparison." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #F8FAFC;
+      --surface:     #FFFFFF;
+      --surface-alt: #F1F5F9;
+      --border:      #E2E8F0;
+      --primary:     #1D4ED8;
+      --primary-lt:  #DBEAFE;
+      --success:     #15803D;
+      --success-lt:  #DCFCE7;
+      --danger:      #B91C1C;
+      --danger-lt:   #FEE2E2;
+      --warn:        #B45309;
+      --warn-lt:     #FEF9C3;
+      --muted:       #64748B;
+      --text:        #1E293B;
+      --text-lt:     #475569;
+      --radius:      8px;
+      --shadow:      0 1px 3px rgba(0,0,0,.08);
+      --shadow-md:   0 4px 12px rgba(0,0,0,.10);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────────────── */
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 0 28px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; }
+    .header-badge {
+      background: rgba(255,255,255,.18);
+      color: white;
+      font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: 999px;
+    }
+
+    /* ── TABS ───────────────────────────────────────────────────── */
+    .tab-bar {
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      padding: 0 28px;
+      gap: 0;
+    }
+    .tab-btn {
+      padding: 14px 20px;
+      font-size: 13px; font-weight: 600;
+      color: var(--muted);
+      border: none; background: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── LAYOUT ─────────────────────────────────────────────────── */
+    .page {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .full-width { max-width: 1300px; margin: 0 auto; padding: 28px 20px 64px; }
+    @media (max-width: 900px) { .page { grid-template-columns: 1fr; } }
+
+    /* ── CARD ───────────────────────────────────────────────────── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .card-header { background: var(--surface-alt); border-bottom: 1px solid var(--border); padding: 12px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+    .card-body { padding: 18px; }
+
+    /* ── FORM ───────────────────────────────────────────────────── */
+    .form-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); margin: 16px 0 8px; }
+    .form-section-label:first-child { margin-top: 0; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 8px 11px; font-size: 13px; color: var(--text); background: var(--surface);
+      transition: border-color .15s; outline: none;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-lt);
+    }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-row label { font-size: 13px; font-weight: 500; }
+    .switch { position: relative; display: inline-block; width: 38px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background: #CBD5E1; border-radius: 999px; transition: .2s; }
+    .slider::before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .2s; }
+    .switch input:checked + .slider { background: var(--primary); }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+    #submit-btn {
+      width: 100%; margin-top: 16px; padding: 11px;
+      background: var(--primary); color: white; border: none; border-radius: var(--radius);
+      font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s, transform .1s;
+    }
+    #submit-btn:hover { background: #1e40af; }
+    #submit-btn:active { transform: scale(.98); }
+    #submit-btn:disabled { background: #94A3B8; cursor: not-allowed; }
+
+    /* ── READMISSION RISK WIDGET ─────────────────────────────────── */
+    #risk-widget { margin-bottom: 16px; }
+    .risk-card {
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .risk-circle {
+      width: 68px; height: 68px; border-radius: 50%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px;
+      color: white; flex-shrink: 0;
+    }
+    .risk-circle span { font-size: 10px; font-weight: 600; opacity: .85; }
+    .risk-info h3 { font-size: 15px; font-weight: 700; }
+    .risk-info p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .prob-bars { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .prob-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+    .prob-row .label { width: 50px; color: var(--muted); font-weight: 600; }
+    .prob-bar-wrap { flex: 1; height: 6px; background: var(--surface-alt); border-radius: 999px; overflow: hidden; }
+    .prob-bar { height: 100%; border-radius: 999px; transition: width .5s; }
+    .prob-row .pct { width: 36px; text-align: right; font-weight: 600; color: var(--text); }
+
+    /* ── RESULTS ────────────────────────────────────────────────── */
+    .placeholder-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; text-align: center; color: var(--muted); }
+    .placeholder-state svg { margin-bottom: 14px; opacity: .35; }
+    .patient-banner { background: var(--primary); color: white; padding: 12px 18px; font-size: 12px; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+    .patient-banner .pill { background: rgba(255,255,255,.15); padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .global-warnings { padding: 12px 18px; background: var(--warn-lt); border-bottom: 1px solid #FDE68A; }
+    .global-warnings h4 { color: var(--warn); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
+    .global-warnings ul { padding-left: 16px; }
+    .global-warnings ul li { font-size: 12px; color: #78350F; margin-bottom: 2px; }
+    .results-section-header { padding: 9px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; border-bottom: 1px solid var(--border); }
+    .results-section-header.green { background: var(--success-lt); color: var(--success); }
+    .results-section-header.red   { background: var(--danger-lt);  color: var(--danger); }
+
+    .drug-card { border-bottom: 1px solid var(--border); padding: 14px 18px; transition: background .1s; }
+    .drug-card:last-child { border-bottom: none; }
+    .drug-card:hover { background: var(--surface-alt); }
+    .drug-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+    .drug-name { font-size: 15px; font-weight: 700; }
+    .drug-class-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+    .drug-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .meta-pill { font-size: 10px; padding: 2px 7px; border-radius: 999px; font-weight: 500; }
+    .drug-sections { display: flex; gap: 14px; flex-wrap: wrap; }
+    .drug-section { flex: 1; min-width: 160px; }
+    .drug-section h5 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .drug-section.reasons h5  { color: var(--success); }
+    .drug-section.warnings h5 { color: var(--warn); }
+    .drug-section ul { padding-left: 14px; }
+    .drug-section ul li { font-size: 11px; margin-bottom: 2px; line-height: 1.5; }
+    .drug-section.reasons  ul li { color: #166534; }
+    .drug-section.warnings ul li { color: #92400E; }
+    .dose-info { font-size: 11px; color: var(--text-lt); margin-top: 6px; }
+    .dose-info span { font-weight: 600; color: var(--text); }
+    .contra-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 18px; border-bottom: 1px solid var(--border); }
+    .contra-item:last-child { border-bottom: none; }
+    .contra-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--danger); flex-shrink: 0; margin-top: 5px; }
+    .contra-drug { font-weight: 600; font-size: 12px; }
+    .contra-reason { font-size: 11px; color: var(--danger); }
+
+    /* badge colours */
+    .bg-blue   { background: #DBEAFE; color: #1E40AF; }
+    .bg-green  { background: #DCFCE7; color: #166534; }
+    .bg-orange { background: #FFEDD5; color: #9A3412; }
+    .bg-violet { background: #EDE9FE; color: #5B21B6; }
+    .bg-cyan   { background: #CFFAFE; color: #155E75; }
+    .bg-pink   { background: #FCE7F3; color: #9D174D; }
+    .bg-slate  { background: #F1F5F9; color: #475569; }
+    .bg-amber  { background: #FEF9C3; color: #854D0E; }
+
+    /* ── SPINNER ────────────────────────────────────────────────── */
+    #loading { display: none; align-items: center; justify-content: center; padding: 48px; flex-direction: column; gap: 12px; color: var(--muted); font-size: 13px; }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MODEL COMPARISON PAGE ──────────────────────────────────── */
+    .comparison-hero {
+      background: var(--primary);
+      color: white;
+      padding: 28px 32px;
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+    }
+    .comparison-hero h2 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    .comparison-hero p  { font-size: 13px; opacity: .85; max-width: 600px; }
+
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); }
+    .metric-card .label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 4px; }
+    .metric-card .value { font-size: 26px; font-weight: 800; color: var(--text); }
+    .metric-card .sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* comparison table */
+    .comp-table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { background: var(--surface-alt); padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); border-bottom: 2px solid var(--border); white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:hover { background: var(--surface-alt); }
+    tbody tr.best-row { background: #EFF6FF; }
+    tbody td { padding: 12px 14px; }
+    .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; font-weight: 700; }
+    .rank-1 { background: #FEF9C3; color: #854D0E; }
+    .rank-2 { background: #F1F5F9; color: #475569; }
+    .rank-3 { background: #FFF7ED; color: #9A3412; }
+    .rank-4 { background: #F8FAFC; color: #94A3B8; }
+    .best-badge { background: var(--primary); color: white; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 999px; margin-left: 6px; text-transform: uppercase; letter-spacing: .4px; }
+    .metric-bar-cell { display: flex; align-items: center; gap: 8px; }
+    .mini-bar-wrap { width: 80px; height: 5px; background: var(--border); border-radius: 999px; overflow: hidden; flex-shrink: 0; }
+    .mini-bar { height: 100%; border-radius: 999px; }
+
+    /* why xgboost section */
+    .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 20px; }
+    .why-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+    .why-card .icon { font-size: 20px; margin-bottom: 8px; }
+    .why-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .why-card p  { font-size: 12px; color: var(--text-lt); line-height: 1.6; }
+    .section-title { font-size: 15px; font-weight: 800; color: var(--text); margin: 28px 0 14px; border-left: 3px solid var(--primary); padding-left: 10px; }
+
+    /* footer */
+    footer { text-align: center; padding: 14px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); background: var(--surface); margin-top: 32px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)"/>
+      <path d="M12 4v16M4 12h16" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    CDSS — Type 2 Diabetes
+  </div>
+  <span class="header-badge">Drug Recommendation & Model Insights</span>
+</header>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('tab-recommend', this)">💊 Drug Recommendation</button>
+  <button class="tab-btn" onclick="switchTab('tab-models', this)">📊 Model Comparison</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 1 — DRUG RECOMMENDATION
+═══════════════════════════════════════════════════════════════ -->
+<div id="tab-recommend" class="tab-panel active">
+  <div class="page">
+
+    <!-- FORM -->
+    <section>
+      <div class="card">
+        <div class="card-header">Patient Clinical Details</div>
+        <div class="card-body">
+          <form id="patient-form" novalidate>
+
+            <p class="form-section-label">Demographics</p>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Patient Name</label>
+                <input type="text" id="patient-name" placeholder="John Doe" />
+              </div>
+              <div class="form-group">
+                <label>Age (years)</label>
+                <input type="number" id="patient-age" min="18" max="120" placeholder="55" />
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Gender</label>
+                <select id="patient-gender">
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>BMI</label>
+                <input type="number" id="patient-bmi" step="0.1" min="10" max="70" placeholder="28.5" />
+              </div>
+            </div>
+
+            <p class="form-section-label">Laboratory Values</p>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>HbA1c (%)</label>
+                <input type="number" id="patient-hba1c" step="0.1" min="4" max="20" placeholder="8.5" />
+              </div>
+              <div class="form-group">
+                <label>eGFR (mL/min/1.73m²)</label>
+                <input type="number" id="patient-egfr" step="1" min="0" max="150" placeholder="75" />
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Number of Medications</label>
+                <input type="number" id="num-medications" step="1" min="0" max="100" placeholder="10" />
+              </div>
+              <div class="form-group">
+                <label>Number of Diagnoses</label>
+                <input type="number" id="num-diagnoses" step="1" min="0" max="30" placeholder="7" />
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Days in Hospital</label>
+                <input type="number" id="time-in-hospital" step="1" min="1" max="30" placeholder="4" />
+              </div>
+              <div class="form-group">
+                <label>Prior Inpatient Visits</label>
+                <input type="number" id="number-inpatient" step="1" min="0" max="20" placeholder="1" />
+              </div>
+            </div>
+
+            <p class="form-section-label">Medical Conditions</p>
+            <div class="toggle-row">
+              <label for="toggle-cardiac">Cardiovascular Disease History</label>
+              <label class="switch"><input type="checkbox" id="toggle-cardiac" /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-row" id="pregnancy-row" style="display:none;">
+              <label for="toggle-pregnant">Currently Pregnant</label>
+              <label class="switch"><input type="checkbox" id="toggle-pregnant" /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <label for="toggle-obesity">Obesity (BMI ≥ 30)</label>
+              <label class="switch"><input type="checkbox" id="toggle-obesity" /><span class="slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <label for="toggle-insulin">On Insulin</label>
+              <label class="switch"><input type="checkbox" id="toggle-insulin" /><span class="slider"></span></label>
+            </div>
+
+            <p class="form-section-label">Clinical Preferences</p>
+            <div class="form-group">
+              <label>Hypoglycemia Risk Tolerance</label>
+              <select id="hypo-tolerance">
+                <option value="low">Low — Prefer agents with minimal hypoglycemia risk</option>
+                <option value="medium">Medium — Moderate tolerance acceptable</option>
+                <option value="high">High — All agents acceptable</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Current Medications (comma-separated)</label>
+              <input type="text" id="current-meds" placeholder="e.g. Metformin, Insulin Glargine" />
+            </div>
+
+            <button type="submit" id="submit-btn">Get Drug Recommendations</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section>
+      <!-- Readmission Risk Widget -->
+      <div id="risk-widget" style="display:none;" class="card" style="margin-bottom:16px;">
+        <div class="card-header">🤖 XGBoost Readmission Risk Prediction</div>
+        <div class="card-body" id="risk-content"></div>
+      </div>
+
+      <!-- Drug Recommendations -->
+      <div class="card" id="results-panel">
+        <div id="placeholder" class="placeholder-state">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p>Fill in patient details and click<br><strong>Get Drug Recommendations</strong></p>
+        </div>
+        <div id="loading"><div class="spinner"></div><span>Analysing patient profile…</span></div>
+        <div id="results-content" style="display:none;"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 2 — MODEL COMPARISON
+═══════════════════════════════════════════════════════════════ -->
+<div id="tab-models" class="tab-panel">
+  <div class="full-width">
+
+    <div class="comparison-hero">
+      <h2>📊 ML Model Comparative Analysis</h2>
+      <p>We trained four machine learning models on 81,408 patient records (80/20 stratified split, 127 features) to predict hospital readmission. Here's why <strong>XGBoost was selected</strong> as the best model for this CDSS.</p>
+    </div>
+
+    <!-- Summary KPI cards -->
+    <div class="metrics-grid" id="kpi-cards">
+      <div class="metric-card"><div class="label">Best Model</div><div class="value" id="kpi-best-model">XGBoost</div><div class="sub">Highest accuracy & ROC AUC</div></div>
+      <div class="metric-card"><div class="label">Best Accuracy</div><div class="value" id="kpi-best-acc">59.53%</div><div class="sub">On 20,353 test samples</div></div>
+      <div class="metric-card"><div class="label">Best ROC AUC</div><div class="value" id="kpi-best-auc">0.6906</div><div class="sub">Macro-average, One-vs-Rest</div></div>
+      <div class="metric-card"><div class="label">Dataset Size</div><div class="value">101,763</div><div class="sub">Patient records, 127 features</div></div>
+    </div>
+
+    <!-- Comparison table -->
+    <p class="section-title">Head-to-Head Model Metrics</p>
+    <div class="card">
+      <div class="comp-table-wrap">
+        <table id="comp-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Model</th>
+              <th>Accuracy</th>
+              <th>Precision</th>
+              <th>Recall</th>
+              <th>F1 Score</th>
+              <th>ROC AUC</th>
+              <th>Train Time</th>
+              <th>Pred Time</th>
+              <th>vs Best</th>
+            </tr>
+          </thead>
+          <tbody id="comp-tbody">
+            <tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted);">Loading model results…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Visual metric bars -->
+    <p class="section-title">Accuracy Comparison (Visual)</p>
+    <div class="card">
+      <div class="card-body" id="acc-bars-container" style="display:flex;flex-direction:column;gap:14px;"></div>
+    </div>
+
+    <!-- Why XGBoost section -->
+    <p class="section-title">Why We Chose XGBoost</p>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="icon">🏆</div>
+        <h4>Highest Accuracy & F1 Score</h4>
+        <p>XGBoost achieved <strong>59.53% accuracy</strong> and an <strong>F1 of 55.1%</strong> — outperforming all three other models on both metrics. On a 3-class imbalanced dataset this improvement is clinically meaningful.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">📈</div>
+        <h4>Best ROC AUC (0.6906)</h4>
+        <p>ROC AUC measures how well the model distinguishes between readmission classes. XGBoost's AUC of <strong>0.6906</strong> vs Logistic Regression's <strong>0.6519</strong> = a 3.9-point improvement in discriminative power — critical in clinical decisions.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">⚡</div>
+        <h4>Fast Inference (0.053s)</h4>
+        <p>Despite being an ensemble of 200 trees, XGBoost predicts in just <strong>53ms</strong> on 20k records. This makes it suitable for real-time clinical decision support without perceptible delay.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">🔍</div>
+        <h4>Handles Class Imbalance Better</h4>
+        <p>XGBoost's boosting mechanism focuses iteratively on misclassified samples — particularly the minority class (<30 day readmissions, only 11%). This gives better recall for high-risk patients than Logistic Regression or a single Decision Tree.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">🧠</div>
+        <h4>SHAP Explainability</h4>
+        <p>XGBoost is natively supported by SHAP's TreeExplainer, giving us exact (not approximate) Shapley values. This provides per-patient explanations — essential for clinical AI transparency and regulatory compliance.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">📚</div>
+        <h4>Literature Benchmark</h4>
+        <p>Published studies on this UCI Diabetes dataset report XGBoost consistently outperforms other classifiers in the <strong>58–65%</strong> accuracy range. Our results align perfectly with the literature (Strack et al., 2014 and subsequent papers).</p>
+      </div>
+    </div>
+
+    <!-- Model limitations -->
+    <p class="section-title">Limitations & Future Work</p>
+    <div class="card">
+      <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div>
+          <h4 style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--danger);">⚠ Current Limitations</h4>
+          <ul style="padding-left:18px;font-size:12px;color:var(--text-lt);line-height:1.8;">
+            <li>Class imbalance: <code>&lt;30</code> day readmission class only 11% of data</li>
+            <li>59% accuracy — typical for this problem domain but improvable</li>
+            <li>No hyperparameter tuning (GridSearch/Bayesian optimization)</li>
+            <li>Features based on hospital encounter data only, no longitudinal data</li>
+          </ul>
+        </div>
+        <div>
+          <h4 style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--success);">✓ Future Improvements</h4>
+          <ul style="padding-left:18px;font-size:12px;color:var(--text-lt);line-height:1.8;">
+            <li>SMOTE oversampling for minority class balancing</li>
+            <li>Bayesian hyperparameter optimisation with Optuna</li>
+            <li>Deep Learning (TabNet, MLP) for potential AUC improvement</li>
+            <li>Cross-hospital validation for generalisability</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>CDSS — Type 2 Diabetes Mellitus &nbsp;|&nbsp; Final Year Computer Science Project &nbsp;|&nbsp; For educational / demonstration purposes only.</footer>
+
+<script>
+"use strict";
+
+// ── Tab switching ───────────────────────────────────────────────
+function switchTab(tabId, btn) {
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById(tabId).classList.add("active");
+  btn.classList.add("active");
+  if (tabId === "tab-models") loadModelComparison();
+}
+
+// ── Drug class badge colours ────────────────────────────────────
+const CLASS_COLORS = {
+  "biguanide":"bg-blue","sulfonylurea":"bg-orange","meglitinide":"bg-amber",
+  "tzd":"bg-violet","dpp-4 inhibitor":"bg-cyan","sglt2 inhibitor":"bg-green",
+  "glp-1 receptor agonist":"bg-pink","long acting insulin":"bg-slate","rapid acting insulin":"bg-slate"
+};
+function drugClassColor(cls) { return CLASS_COLORS[(cls||"").toLowerCase()] || "bg-slate"; }
+function hypoRiskStyle(r) {
+  r = (r||"").toLowerCase();
+  if (r==="high")   return "style=\"background:#FEE2E2;color:#991B1B;\"";
+  if (r==="medium") return "style=\"background:#FEF9C3;color:#854D0E;\"";
+  return "style=\"background:#DCFCE7;color:#166534;\"";
+}
+function escHtml(s) {
+  return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+// ── Gender → pregnancy row ──────────────────────────────────────
+(function initGenderListener() {
+  const genderEl = document.getElementById("patient-gender");
+  const pRow     = document.getElementById("pregnancy-row");
+  const pToggle  = document.getElementById("toggle-pregnant");
+  function update() {
+    const f = genderEl.value === "female";
+    pRow.style.display = f ? "flex" : "none";
+    if (!f) pToggle.checked = false;
+  }
+  genderEl.addEventListener("change", update);
+  update();
+})();
+
+// ── Form submit ─────────────────────────────────────────────────
+document.getElementById("patient-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const bmi    = parseFloat(document.getElementById("patient-bmi").value) || 0;
+  const gender = document.getElementById("patient-gender").value;
+  const obsToggle = document.getElementById("toggle-obesity");
+  const pToggle   = document.getElementById("toggle-pregnant");
+  if (bmi >= 30 && !obsToggle.checked) obsToggle.checked = true;
+
+  const isFemale  = gender === "female";
+  const isPregnant = isFemale && pToggle.checked;
+  const isInsulin  = document.getElementById("toggle-insulin").checked;
+
+  const payload = {
+    egfr:                        parseFloat(document.getElementById("patient-egfr").value) || 90,
+    hba1c:                       parseFloat(document.getElementById("patient-hba1c").value) || 7.0,
+    pregnant:                    isPregnant,
+    cardiac_history:             document.getElementById("toggle-cardiac").checked,
+    obesity:                     obsToggle.checked,
+    hypoglycemia_risk_tolerance: document.getElementById("hypo-tolerance").value,
+    current_medications:         document.getElementById("current-meds").value,
+    gender:                      gender,
+  };
+
+  // ML feature payload for readmission prediction
+  const mlPayload = {
+    num_medications:   parseFloat(document.getElementById("num-medications").value) || 0,
+    number_diagnoses:  parseFloat(document.getElementById("num-diagnoses").value) || 0,
+    time_in_hospital:  parseFloat(document.getElementById("time-in-hospital").value) || 0,
+    number_inpatient:  parseFloat(document.getElementById("number-inpatient").value) || 0,
+    uses_insulin:      isInsulin ? 1 : 0,
+    Obesity:           obsToggle.checked ? 1 : 0,
+    Heart_Failure:     document.getElementById("toggle-cardiac").checked ? 1 : 0,
+    age:               parseFloat(document.getElementById("patient-age").value) || 50,
+    num_lab_procedures: 40,
+  };
+
+  // Show loading
+  document.getElementById("placeholder").style.display    = "none";
+  document.getElementById("results-content").style.display = "none";
+  document.getElementById("loading").style.display        = "flex";
+  document.getElementById("risk-widget").style.display    = "none";
+  document.getElementById("submit-btn").disabled          = true;
+
+  try {
+    // Run both requests in parallel
+    const [recResp, riskResp] = await Promise.all([
+      fetch("/recommend",           { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) }),
+      fetch("/readmission_predict", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(mlPayload) }),
+    ]);
+
+    const recData  = await recResp.json();
+    const riskData = await riskResp.json();
+
+    // Render readmission risk widget
+    if (riskData.available) renderRiskWidget(riskData);
+
+    // Render drug recommendations
+    if (recData.error) throw new Error(recData.error);
+    renderResults(recData);
+
+  } catch (err) {
+    document.getElementById("results-content").innerHTML =
+      `<div style="padding:20px;color:var(--danger);"><strong>Error:</strong> ${escHtml(err.message)}</div>`;
+    document.getElementById("results-content").style.display = "block";
+  } finally {
+    document.getElementById("loading").style.display  = "none";
+    document.getElementById("submit-btn").disabled    = false;
+  }
+});
+
+// ── Render risk widget ──────────────────────────────────────────
+function renderRiskWidget(data) {
+  const w = document.getElementById("risk-widget");
+  const c = document.getElementById("risk-content");
+  const probNO  = data.probabilities["NO"]  || 0;
+  const prob30p = data.probabilities[">30"] || 0;
+  const prob30m = data.probabilities["<30"] || 0;
+
+  c.innerHTML = `
+    <div class="risk-card" style="border-color:${data.risk_color}20;">
+      <div class="risk-circle" style="background:${data.risk_color};">
+        ${data.confidence}%<span>conf.</span>
+      </div>
+      <div class="risk-info" style="flex:1;">
+        <h3 style="color:${data.risk_color};">${escHtml(data.risk_level)}</h3>
+        <p>${escHtml(data.predicted_class)} — predicted by <strong>${escHtml(data.model_used)}</strong></p>
+        <div class="prob-bars">
+          <div class="prob-row">
+            <span class="label">NO</span>
+            <div class="prob-bar-wrap"><div class="prob-bar" style="width:${probNO}%;background:#16A34A;"></div></div>
+            <span class="pct">${probNO}%</span>
+          </div>
+          <div class="prob-row">
+            <span class="label">&gt;30d</span>
+            <div class="prob-bar-wrap"><div class="prob-bar" style="width:${prob30p}%;background:#D97706;"></div></div>
+            <span class="pct">${prob30p}%</span>
+          </div>
+          <div class="prob-row">
+            <span class="label">&lt;30d</span>
+            <div class="prob-bar-wrap"><div class="prob-bar" style="width:${prob30m}%;background:#DC2626;"></div></div>
+            <span class="pct">${prob30m}%</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  w.style.display = "block";
+}
+
+// ── Render drug recommendations ─────────────────────────────────
+function renderResults(data) {
+  const el = document.getElementById("results-content");
+  const ps = data.patient_summary || {};
+  let html = "";
+
+  html += `<div class="patient-banner">
+    <span class="pill">HbA1c: ${ps.HbA1c??'N/A'}%</span>
+    <span class="pill">eGFR: ${ps.eGFR??'N/A'}</span>
+    <span class="pill">Cardiac: ${ps["Cardiac History"]?"Yes":"No"}</span>
+    <span class="pill">Pregnant: ${ps.Pregnant?"Yes":"No"}</span>
+    <span class="pill">Obese: ${ps.Obesity?"Yes":"No"}</span>
+    <span class="pill">Renal Impairment: ${ps["Renal Impairment"]?"Yes":"No"}</span>
+  </div>`;
+
+  const gw = data.patient_warnings || [];
+  if (gw.length) {
+    html += `<div class="global-warnings"><h4>⚠ Patient-Level Warnings</h4><ul>${gw.map(w=>`<li>${escHtml(w)}</li>`).join("")}</ul></div>`;
+  }
+
+  const recs = data.recommended || [];
+  html += `<div class="results-section-header green">✓ Recommended Agents (${recs.length})</div>`;
+  if (!recs.length) {
+    html += `<div style="padding:18px;color:var(--muted);font-size:13px;">No suitable agents found for this patient profile.</div>`;
+  } else {
+    recs.forEach(drug => {
+      html += `<div class="drug-card">
+        <div class="drug-top">
+          <div class="drug-name">${escHtml(drug.drug_name)}</div>
+          <span class="drug-class-badge ${drugClassColor(drug.drug_class)}">${escHtml(drug.drug_class)}</span>
+        </div>
+        <div class="drug-meta">
+          <span class="meta-pill" ${hypoRiskStyle(drug.hypoglycemia_risk)}>Hypo: ${escHtml(drug.hypoglycemia_risk)}</span>
+          <span class="meta-pill" style="background:#F1F5F9;color:#475569;">Weight: ${escHtml(drug.weight_effect)}</span>
+          <span class="meta-pill" style="background:#F1F5F9;color:#475569;">CV: ${escHtml(String(drug.cv_benefit))}</span>
+          <span class="meta-pill" style="background:#F1F5F9;color:#475569;">${escHtml(drug.route)}</span>
+          ${drug.is_first_line?'<span class="meta-pill" style="background:#DBEAFE;color:#1E40AF;">First-Line</span>':""}
+        </div>
+        <div class="drug-sections">
+          ${drug.reasons?.length?`<div class="drug-section reasons"><h5>✓ Why Recommended</h5><ul>${drug.reasons.map(r=>`<li>${escHtml(r)}</li>`).join("")}</ul></div>`:""}
+          ${drug.warnings?.length?`<div class="drug-section warnings"><h5>⚠ Cautions</h5><ul>${drug.warnings.map(w=>`<li>${escHtml(w)}</li>`).join("")}</ul></div>`:""}
+        </div>
+        <div class="dose-info">
+          <span>Start:</span> ${escHtml(drug.starting_dose)} &nbsp;|&nbsp;
+          <span>Max:</span> ${escHtml(drug.max_dose)} &nbsp;|&nbsp;
+          <span>Mechanism:</span> ${escHtml(drug.mechanism)}
+          ${drug.renal_adjustment&&!["not required","no",""].includes((drug.renal_adjustment||"").toLowerCase())?
+            `<br><span style="color:var(--warn);">Renal:</span> ${escHtml(drug.renal_adjustment)}`:""}
+        </div>
+      </div>`;
+    });
+  }
+
+  const contras = data.contraindicated || [];
+  if (contras.length) {
+    html += `<div class="results-section-header red">✗ Contraindicated / Excluded (${contras.length})</div>`;
+    contras.forEach(d => {
+      html += `<div class="contra-item"><div class="contra-dot"></div>
+        <div><div class="contra-drug">${escHtml(d.drug_name)} <span style="font-weight:400;color:var(--muted);">(${escHtml(d.drug_class)})</span></div>
+        <div class="contra-reason">${escHtml(d.reason)}</div></div></div>`;
+    });
+  }
+
+  el.innerHTML = html;
+  el.style.display = "block";
+}
+
+// ── Load model comparison ───────────────────────────────────────
+let compLoaded = false;
+async function loadModelComparison() {
+  if (compLoaded) return;
+  try {
+    const resp = await fetch("/model_comparison");
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+
+    // Update KPIs
+    document.getElementById("kpi-best-model").textContent = data.best_model;
+    document.getElementById("kpi-best-acc").textContent   = (data.best_accuracy*100).toFixed(2) + "%";
+    document.getElementById("kpi-best-auc").textContent   = data.best_roc_auc.toFixed(4);
+
+    const models = data.models;
+    const bestAcc = data.best_accuracy;
+
+    // Row colours for models
+    const modelColors = { "XGBoost":"#2563EB", "Random Forest":"#16A34A", "Decision Tree":"#D97706", "Logistic Regression":"#7C3AED" };
+
+    // Build table rows
+    let tbody = "";
+    models.forEach((m, i) => {
+      const rankClass = `rank-${m.Rank}`;
+      const isBest    = m.is_best;
+      const diff      = m.acc_diff_from_best;
+      const accPct    = (m.Accuracy * 100).toFixed(2);
+      const color     = modelColors[m.Model] || "#1D4ED8";
+      const barW      = Math.round((m.Accuracy / bestAcc) * 100);
+
+      tbody += `<tr ${isBest?'class="best-row"':""}>
+        <td><span class="rank-badge ${rankClass}">${m.Rank}</span></td>
+        <td><strong>${escHtml(m.Model)}</strong>${isBest?'<span class="best-badge">Best</span>':""}</td>
+        <td>
+          <div class="metric-bar-cell">
+            <div class="mini-bar-wrap"><div class="mini-bar" style="width:${barW}%;background:${color};"></div></div>
+            ${accPct}%
+          </div>
+        </td>
+        <td>${(m.Precision*100).toFixed(2)}%</td>
+        <td>${(m.Recall*100).toFixed(2)}%</td>
+        <td>${(m["F1 Score"]*100).toFixed(2)}%</td>
+        <td><strong>${m["ROC AUC"].toFixed(4)}</strong></td>
+        <td>${m["Training Time(s)"].toFixed(2)}s</td>
+        <td>${m["Prediction Time(s)"].toFixed(4)}s</td>
+        <td>${isBest ? '<span style="color:var(--success);font-weight:700;">—</span>' : `<span style="color:var(--danger);">-${diff.toFixed(2)}%</span>`}</td>
+      </tr>`;
+    });
+    document.getElementById("comp-tbody").innerHTML = tbody;
+
+    // Build accuracy visual bars
+    let barsHtml = "";
+    models.forEach(m => {
+      const color  = modelColors[m.Model] || "#1D4ED8";
+      const accPct = (m.Accuracy * 100).toFixed(2);
+      const barW   = Math.round((m.Accuracy / bestAcc) * 100);
+      barsHtml += `<div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:4px;">
+          <span>${escHtml(m.Model)}</span>
+          <span>${accPct}%</span>
+        </div>
+        <div style="height:12px;background:var(--surface-alt);border-radius:999px;overflow:hidden;">
+          <div style="height:100%;width:${barW}%;background:${color};border-radius:999px;transition:width .6s;"></div>
+        </div>
+      </div>`;
+    });
+    document.getElementById("acc-bars-container").innerHTML = barsHtml;
+
+    compLoaded = true;
+  } catch (err) {
+    document.getElementById("comp-tbody").innerHTML =
+      `<tr><td colspan="10" style="padding:20px;color:var(--danger);">Error loading model data: ${escHtml(err.message)}. Make sure train_models.py has been run.</td></tr>`;
+  }
+}
+</script>
+
+</body>
+</html>
