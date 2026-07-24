@@ -123,6 +123,7 @@
     .slider::before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .2s; }
     .switch input:checked + .slider { background: var(--primary); }
     .switch input:checked + .slider::before { transform: translateX(18px); }
+    .switch input:disabled + .slider { opacity: 0.6; cursor: not-allowed; }
     #submit-btn {
       width: 100%; margin-top: 16px; padding: 11px;
       background: var(--primary); color: white; border: none; border-radius: var(--radius);
@@ -360,7 +361,7 @@
             </div>
             <div class="toggle-row">
               <label for="toggle-obesity">Obesity (BMI ≥ 30)</label>
-              <label class="switch"><input type="checkbox" id="toggle-obesity" /><span class="slider"></span></label>
+              <label class="switch"><input type="checkbox" id="toggle-obesity" disabled /><span class="slider"></span></label>
             </div>
             <div class="toggle-row">
               <label for="toggle-insulin">On Insulin</label>
@@ -567,6 +568,18 @@ function escHtml(s) {
     if (!f) pToggle.checked = false;
   }
   genderEl.addEventListener("change", update);
+  update();
+})();
+
+// ── BMI → Obesity sync ──────────────────────────────────────────
+(function initBmiListener() {
+  const bmiEl = document.getElementById("patient-bmi");
+  const obsToggle = document.getElementById("toggle-obesity");
+  function update() {
+    const bmi = parseFloat(bmiEl.value) || 0;
+    obsToggle.checked = bmi >= 30;
+  }
+  bmiEl.addEventListener("input", update);
   update();
 })();
 
