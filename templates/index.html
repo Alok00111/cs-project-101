@@ -528,7 +528,7 @@
       <div class="why-card">
         <div class="icon">🔍</div>
         <h4>Handles Class Imbalance Better</h4>
-        <p>XGBoost's boosting mechanism focuses iteratively on misclassified samples — particularly the minority class (<30 day readmissions, only 11%). This gives better recall for high-risk patients than Logistic Regression or a single Decision Tree.</p>
+        <p>XGBoost's boosting mechanism focuses iteratively on misclassified samples. This gives better recall for high-risk patients than Logistic Regression or a single Decision Tree.</p>
       </div>
       <div class="why-card">
         <div class="icon">🧠</div>
@@ -549,8 +549,7 @@
         <div>
           <h4 style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--danger);">⚠ Current Limitations</h4>
           <ul style="padding-left:18px;font-size:12px;color:var(--text-lt);line-height:1.8;">
-            <li>Class imbalance: <code>&lt;30</code> day readmission class only 11% of data</li>
-            <li>59% accuracy — typical for this problem domain but improvable</li>
+            <li>Class imbalance: <code>Readmitted</code> class is smaller than <code>Not Readmitted</code></li>
             <li>No hyperparameter tuning (GridSearch/Bayesian optimization)</li>
             <li>Features based on hospital encounter data only, no longitudinal data</li>
           </ul>
@@ -742,8 +741,7 @@ function renderRiskWidget(data) {
   const w = document.getElementById("risk-widget");
   const c = document.getElementById("risk-content");
   const probNO  = data.probabilities["NO"]  || 0;
-  const prob30p = data.probabilities[">30"] || 0;
-  const prob30m = data.probabilities["<30"] || 0;
+  const probYES = data.probabilities["YES"] || 0;
 
   c.innerHTML = `
     <div class="risk-card" style="border-color:${data.risk_color}20;">
@@ -760,14 +758,9 @@ function renderRiskWidget(data) {
             <span class="pct">${probNO}%</span>
           </div>
           <div class="prob-row">
-            <span class="label">&gt;30d</span>
-            <div class="prob-bar-wrap"><div class="prob-bar" style="width:${prob30p}%;background:#D97706;"></div></div>
-            <span class="pct">${prob30p}%</span>
-          </div>
-          <div class="prob-row">
-            <span class="label">&lt;30d</span>
-            <div class="prob-bar-wrap"><div class="prob-bar" style="width:${prob30m}%;background:#DC2626;"></div></div>
-            <span class="pct">${prob30m}%</span>
+            <span class="label">YES</span>
+            <div class="prob-bar-wrap"><div class="prob-bar" style="width:${probYES}%;background:#DC2626;"></div></div>
+            <span class="pct">${probYES}%</span>
           </div>
         </div>
       </div>

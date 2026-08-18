@@ -94,7 +94,6 @@ def build_models() -> dict:
             solver="lbfgs",
             C=1.0,
             random_state=RANDOM_STATE,
-            n_jobs=-1,
         ),
         "Decision Tree": DecisionTreeClassifier(
             max_depth=10,
@@ -110,7 +109,6 @@ def build_models() -> dict:
             min_samples_leaf=5,
             max_features="sqrt",
             random_state=RANDOM_STATE,
-            n_jobs=-1,
         ),
         "XGBoost": XGBClassifier(
             n_estimators=200,
@@ -118,7 +116,7 @@ def build_models() -> dict:
             learning_rate=0.1,
             subsample=0.8,
             colsample_bytree=0.8,
-            eval_metric="mlogloss",
+            eval_metric="logloss",
             random_state=RANDOM_STATE,
             n_jobs=-1,
             verbosity=0,

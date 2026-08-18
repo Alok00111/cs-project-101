@@ -430,9 +430,9 @@ def readmission_predict():
         pred_index = int(model.predict(X)[0])
         proba      = model.predict_proba(X)[0].tolist()
 
-        class_labels = ["NO (Not Readmitted)", ">30 Days", "<30 Days (High Risk)"]
-        risk_levels  = ["Low Risk", "Moderate Risk", "High Risk"]
-        risk_colors  = ["#16A34A", "#D97706", "#DC2626"]
+        class_labels = ["NO (Not Readmitted)", "YES (Readmitted)"]
+        risk_levels  = ["Low Risk", "High Risk"]
+        risk_colors  = ["#16A34A", "#DC2626"]
 
         return jsonify({
             "predicted_index":       pred_index,
@@ -442,8 +442,7 @@ def readmission_predict():
             "confidence":            round(proba[pred_index] * 100, 1),
             "probabilities": {
                 "NO":      round(proba[0] * 100, 1),
-                ">30":     round(proba[1] * 100, 1),
-                "<30":     round(proba[2] * 100, 1),
+                "YES":     round(proba[1] * 100, 1),
             },
             "model_used": "XGBoost (Best Performing Model)",
             "available": True,

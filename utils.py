@@ -13,7 +13,7 @@ import logging
 # DATASET PATHS  — update these paths if your dataset location changes
 # =============================================================================
 DATASET_PATH = r"C:\Users\aloks\Downloads\final_ml_ready_dataset.csv"
-DRUG_KNOWLEDGE_PATH = r"C:\Users\aloks\OneDrive\Desktop\drug_knowledge.csv"
+DRUG_KNOWLEDGE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "drug_knowledge.csv")
 
 # =============================================================================
 # OUTPUT DIRECTORIES
@@ -41,7 +41,7 @@ COMPARISON_CSV_PATH = os.path.join(RESULTS_DIR, "model_comparison.csv")
 # RANDOM STATE
 # =============================================================================
 RANDOM_STATE = 42
-TEST_SIZE    = 0.20
+TEST_SIZE    = 0.30
 
 # =============================================================================
 # TARGET VARIABLE
