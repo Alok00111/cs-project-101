@@ -274,9 +274,8 @@
 </header>
 
 <!-- TABS -->
-<div class="tab-bar">
+<div class="tab-bar" style="display: none;">
   <button class="tab-btn active" onclick="switchTab('tab-recommend', this)">💊 Drug Recommendation</button>
-  <button class="tab-btn" onclick="switchTab('tab-models', this)">📊 Model Comparison</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -456,118 +455,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     TAB 2 — MODEL COMPARISON
-═══════════════════════════════════════════════════════════════ -->
-<div id="tab-models" class="tab-panel">
-  <div class="full-width">
 
-    <div class="comparison-hero">
-      <h2>📊 ML Model Comparative Analysis</h2>
-      <p>We trained four machine learning models on 81,408 patient records (80/20 stratified split, 127 features) to predict hospital readmission. Here's why <strong>XGBoost was selected</strong> as the best model for this CDSS.</p>
-    </div>
-
-    <!-- Summary KPI cards -->
-    <div class="metrics-grid" id="kpi-cards">
-      <div class="metric-card"><div class="label">Best Model</div><div class="value" id="kpi-best-model">XGBoost</div><div class="sub">Highest accuracy & ROC AUC</div></div>
-      <div class="metric-card"><div class="label">Best Accuracy</div><div class="value" id="kpi-best-acc">59.53%</div><div class="sub">On 20,353 test samples</div></div>
-      <div class="metric-card"><div class="label">Best ROC AUC</div><div class="value" id="kpi-best-auc">0.6906</div><div class="sub">Macro-average, One-vs-Rest</div></div>
-      <div class="metric-card"><div class="label">Dataset Size</div><div class="value">101,763</div><div class="sub">Patient records, 127 features</div></div>
-    </div>
-
-    <!-- Comparison table -->
-    <p class="section-title">Head-to-Head Model Metrics</p>
-    <div class="card">
-      <div class="comp-table-wrap">
-        <table id="comp-table">
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Model</th>
-              <th>Accuracy</th>
-              <th>Precision</th>
-              <th>Recall</th>
-              <th>F1 Score</th>
-              <th>ROC AUC</th>
-              <th>Train Time</th>
-              <th>Pred Time</th>
-              <th>vs Best</th>
-            </tr>
-          </thead>
-          <tbody id="comp-tbody">
-            <tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted);">Loading model results…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Visual metric bars -->
-    <p class="section-title">Accuracy Comparison (Visual)</p>
-    <div class="card">
-      <div class="card-body" id="acc-bars-container" style="display:flex;flex-direction:column;gap:14px;"></div>
-    </div>
-
-    <!-- Why XGBoost section -->
-    <p class="section-title">Why We Chose XGBoost</p>
-    <div class="why-grid">
-      <div class="why-card">
-        <div class="icon">🏆</div>
-        <h4>Highest Accuracy & F1 Score</h4>
-        <p>XGBoost achieved <strong>59.53% accuracy</strong> and an <strong>F1 of 55.1%</strong> — outperforming all three other models on both metrics. On a 3-class imbalanced dataset this improvement is clinically meaningful.</p>
-      </div>
-      <div class="why-card">
-        <div class="icon">📈</div>
-        <h4>Best ROC AUC (0.6906)</h4>
-        <p>ROC AUC measures how well the model distinguishes between readmission classes. XGBoost's AUC of <strong>0.6906</strong> vs Logistic Regression's <strong>0.6519</strong> = a 3.9-point improvement in discriminative power — critical in clinical decisions.</p>
-      </div>
-      <div class="why-card">
-        <div class="icon">⚡</div>
-        <h4>Fast Inference (0.053s)</h4>
-        <p>Despite being an ensemble of 200 trees, XGBoost predicts in just <strong>53ms</strong> on 20k records. This makes it suitable for real-time clinical decision support without perceptible delay.</p>
-      </div>
-      <div class="why-card">
-        <div class="icon">🔍</div>
-        <h4>Handles Class Imbalance Better</h4>
-        <p>XGBoost's boosting mechanism focuses iteratively on misclassified samples. This gives better recall for high-risk patients than Logistic Regression or a single Decision Tree.</p>
-      </div>
-      <div class="why-card">
-        <div class="icon">🧠</div>
-        <h4>SHAP Explainability</h4>
-        <p>XGBoost is natively supported by SHAP's TreeExplainer, giving us exact (not approximate) Shapley values. This provides per-patient explanations — essential for clinical AI transparency and regulatory compliance.</p>
-      </div>
-      <div class="why-card">
-        <div class="icon">📚</div>
-        <h4>Literature Benchmark</h4>
-        <p>Published studies on this UCI Diabetes dataset report XGBoost consistently outperforms other classifiers in the <strong>58–65%</strong> accuracy range. Our results align perfectly with the literature (Strack et al., 2014 and subsequent papers).</p>
-      </div>
-    </div>
-
-    <!-- Model limitations -->
-    <p class="section-title">Limitations & Future Work</p>
-    <div class="card">
-      <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-        <div>
-          <h4 style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--danger);">⚠ Current Limitations</h4>
-          <ul style="padding-left:18px;font-size:12px;color:var(--text-lt);line-height:1.8;">
-            <li>Class imbalance: <code>Readmitted</code> class is smaller than <code>Not Readmitted</code></li>
-            <li>No hyperparameter tuning (GridSearch/Bayesian optimization)</li>
-            <li>Features based on hospital encounter data only, no longitudinal data</li>
-          </ul>
-        </div>
-        <div>
-          <h4 style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--success);">✓ Future Improvements</h4>
-          <ul style="padding-left:18px;font-size:12px;color:var(--text-lt);line-height:1.8;">
-            <li>SMOTE oversampling for minority class balancing</li>
-            <li>Bayesian hyperparameter optimisation with Optuna</li>
-            <li>Deep Learning (TabNet, MLP) for potential AUC improvement</li>
-            <li>Cross-hospital validation for generalisability</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
 
 <footer>CDSS — Type 2 Diabetes Mellitus &nbsp;|&nbsp; Final Year Computer Science Project &nbsp;|&nbsp; For educational / demonstration purposes only.</footer>
 
